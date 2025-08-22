@@ -54,7 +54,7 @@ const AIAssistant = () => {
     "I've analyzed the crowd flow patterns. The shortest route to your destination will take approximately 25 minutes considering current conditions."
   ];
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -64,12 +64,49 @@ const AIAssistant = () => {
       timestamp: new Date()
     };
 
+    const textToSend = input;
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const response = await fetch('https://gaurav18.app.n8n.cloud/webhook/chatbot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: textToSend })
+      });
+
+      let assistantText = '';
+      if (response.ok) {
+        // Try to parse JSON first; if it fails, read as text
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          // Common shapes: {reply:"..."} or {message:"..."} or {data:{...}}
+          assistantText = (data.reply || data.message || data.text || data.answer || '').toString();
+          if (!assistantText && typeof data === 'string') {
+            assistantText = data;
+          }
+        } else {
+          assistantText = await response.text();
+        }
+      }
+
+      if (!assistantText) {
+        assistantText = predefinedResponses[Math.floor(Math.random() * predefinedResponses.length)];
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: assistantText,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
@@ -77,8 +114,9 @@ const AIAssistant = () => {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
+    } finally {
       setIsTyping(false);
-    }, 2000);
+    }
   };
 
   const handleVoiceToggle = () => {
@@ -215,7 +253,7 @@ const AIAssistant = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about crowd status, routes, safety..."
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
               className="pr-12"
             />
             <Button
