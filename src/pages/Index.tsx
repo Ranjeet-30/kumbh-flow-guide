@@ -14,9 +14,22 @@ import EmergencyInfo from '@/components/EmergencyInfo';
 const Index = () => {
   const [isSimulationRunning, setIsSimulationRunning] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [simResetKey, setSimResetKey] = useState(0);
 
   const handleToggleSimulation = () => {
     setIsSimulationRunning(!isSimulationRunning);
+  };
+
+  const handleStopSimulation = () => {
+    if (isSimulationRunning) {
+      setIsSimulationRunning(false);
+    }
+  };
+
+  const handleResetSimulation = () => {
+    // Stop and force re-mount dependent components
+    setIsSimulationRunning(false);
+    setSimResetKey((k) => k + 1);
   };
 
   const handleTabChange = (tab: string) => {
@@ -47,7 +60,7 @@ const Index = () => {
             <HeroSection />
             <CrowdDashboard />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Simulation3D />
+              <Simulation3D key={`overview-${simResetKey}`} />
               <AIAssistant />
             </div>
           </TabsContent>
@@ -56,8 +69,10 @@ const Index = () => {
             <SimulationControl 
               isRunning={isSimulationRunning}
               onToggle={handleToggleSimulation}
+              onStop={handleStopSimulation}
+              onResetSimulation={handleResetSimulation}
             />
-            <Simulation3D />
+            <Simulation3D key={`sim-${simResetKey}`} />
           </TabsContent>
 
           <TabsContent value="heatmap" className="space-y-6">
