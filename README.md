@@ -71,3 +71,16 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Real-time simulation & satellite map configuration
+
+Set these environment variables (e.g., in a `.env` file at project root) before running `npm run dev`:
+
+- `VITE_SIM_WS_URL`: WebSocket endpoint that streams JSON updates:
+  - Expected shape: `{ locations: LocationData[], heatZones: HeatZoneData[], crowdParticles: ParticleData[] }`
+  - All fields optional. Omitted fields will keep their previous values.
+- `VITE_SATELLITE_TILE_URL`: Map tile URL template for the basemap.
+  - Defaults to Esri World_Imagery: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`
+  - Must contain `{z}`, `{x}`, `{y}` placeholders and support CORS.
+
+If `VITE_SIM_WS_URL` is not set, the app runs a local timer-based simulator that updates heat zones and particles every second.
