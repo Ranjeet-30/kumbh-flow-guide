@@ -39,7 +39,7 @@ const AIAssistant = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sessionIdRef = useRef<string>(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const WEBHOOK_URL = 'https://gaurav18.app.n8n.cloud/webhook/chatbot';
+  const WEBHOOK_URL = (import.meta as any).env?.DEV ? '/api/chat' : 'https://gaurav18.app.n8n.cloud/webhook/chatbot';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
