@@ -38,6 +38,9 @@ const AIAssistant = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const sessionIdRef = useRef<string>(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const WEBHOOK_URL = (import.meta as any).env?.DEV ? '/api/chat' : 'https://gaurav18.app.n8n.cloud/webhook/chatbot';
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -54,7 +57,7 @@ const AIAssistant = () => {
     "I've analyzed the crowd flow patterns. The shortest route to your destination will take approximately 25 minutes considering current conditions."
   ];
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -65,20 +68,66 @@ const AIAssistant = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const userInput = input;
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: userInput,
+          sessionId: sessionIdRef.current,
+          history: messages.map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      let replyText = '';
+
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        replyText = data.reply || data.message || data.text || data.output || data.result || (Array.isArray(data) ? data[0] : '');
+        if (!replyText) replyText = JSON.stringify(data);
+      } else {
+        const text = await response.text();
+        try {
+          const json = JSON.parse(text);
+          replyText = json.reply || json.message || json.text || text;
+        } catch {
+          replyText = text;
+        }
+      }
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: predefinedResponses[Math.floor(Math.random() * predefinedResponses.length)],
+        content: replyText || 'Sorry, I could not understand the response.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      const fallback = predefinedResponses[Math.floor(Math.random() * predefinedResponses.length)];
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: 'Sorry, I had trouble reaching the assistant. ' + fallback,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    } finally {
       setIsTyping(false);
-    }, 2000);
+    }
   };
 
   const handleVoiceToggle = () => {

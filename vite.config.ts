@@ -8,6 +8,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      "/api/chat": {
+        target: "https://gaurav18.app.n8n.cloud",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/chat/, "/webhook/chatbot"),
+      },
+    },
   },
   plugins: [
     react(),
