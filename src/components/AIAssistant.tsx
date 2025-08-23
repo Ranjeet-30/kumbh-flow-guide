@@ -47,10 +47,18 @@ const AIAssistant = () => {
     altRoute: string
     congestionDropPct: number
   }
+  interface Helplines {
+    general: string
+    medical: string
+    police: string
+    fire: string
+  }
   interface SiteData {
     lastUpdated: string
     bestBathingTime: string
     emergencyEtaMinutes: number
+    helplines?: Helplines
+    autoSuggestOn?: DensityLevel[]
     locations: CrowdLocation[]
   }
   const [siteData, setSiteData] = useState<SiteData | null>(null);
@@ -86,6 +94,12 @@ const AIAssistant = () => {
     "I've analyzed the crowd flow patterns. The shortest route to your destination will take approximately 25 minutes considering current conditions."
   ];
 
+  function formatHelplines(): string {
+    if (!siteData?.helplines) return '';
+    const h = siteData.helplines;
+    return ` Helplines — General: ${h.general}, Medical: ${h.medical}, Police: ${h.police}, Fire: ${h.fire}.`;
+  }
+
   function buildDataDrivenResponse(query: string): string {
     const q = query.toLowerCase();
     if (!siteData) {
@@ -97,15 +111,18 @@ const AIAssistant = () => {
     const mentioned = siteData.locations.find(loc => q.includes(loc.name.toLowerCase()));
     const mostCrowded = [...siteData.locations].sort((a, b) => b.count - a.count)[0];
 
-    if (q.includes('emergency') || q.includes('help') || q.includes('ambulance')) {
-      return `Emergency services have been alerted. Move to the nearest safe zone. Estimated arrival is ${siteData.emergencyEtaMinutes} minutes. Last updated ${new Date(siteData.lastUpdated).toLocaleTimeString()}.`;
+    const shouldAutoSuggest = (d: DensityLevel) => siteData?.autoSuggestOn?.includes(d) ?? false;
+
+    if (q.includes('emergency') || q.includes('help') || q.includes('ambulance') || q.includes('accident')) {
+      const msg = `Emergency services have been alerted. Move to the nearest safe zone. Estimated arrival is ${siteData.emergencyEtaMinutes} minutes.` + formatHelplines();
+      return `${msg} Last updated ${new Date(siteData.lastUpdated).toLocaleTimeString()}.`;
     }
 
     if (q.includes('best') && (q.includes('bath') || q.includes('bathing') || q.includes('snan'))) {
       return `The best bathing time today is ${siteData.bestBathingTime} when crowd density is expected to be lowest. Shall I set a reminder?`;
     }
 
-    if (q.includes('route') || q.includes('safest')) {
+    if (q.includes('route') || q.includes('safest') || q.includes('less crowd')) {
       const loc = mentioned || mostCrowded;
       return `Based on live data, take the alternative route via ${loc.altRoute} which currently has about ${loc.congestionDropPct}% less congestion than the main route to ${loc.name}.`;
     }
@@ -115,11 +132,21 @@ const AIAssistant = () => {
         .slice(0, 3)
         .map(l => `${l.name}: ${l.density} (${l.count.toLocaleString()})`) 
         .join(' • ');
-      return `Current crowd status — ${parts}. Last updated ${new Date(siteData.lastUpdated).toLocaleTimeString()}.`;
+      let base = `Current crowd status — ${parts}. Last updated ${new Date(siteData.lastUpdated).toLocaleTimeString()}.`;
+      // Auto-suggest a less-crowded alternative when density high/critical
+      const high = siteData.locations.find(l => shouldAutoSuggest(l.density));
+      if (high) {
+        base += ` Suggestion: Use ${high.altRoute} near ${high.name} for about ${high.congestionDropPct}% lower congestion.`;
+      }
+      return base;
     }
 
     const loc = mentioned || mostCrowded;
-    return `At ${loc.name}, crowd is ${loc.density} with ${loc.count.toLocaleString()} pilgrims. Consider ${loc.altRoute} for about ${loc.congestionDropPct}% less congestion.`;
+    let response = `At ${loc.name}, crowd is ${loc.density} with ${loc.count.toLocaleString()} pilgrims. Consider ${loc.altRoute} for about ${loc.congestionDropPct}% less congestion.`;
+    if (shouldAutoSuggest(loc.density)) {
+      response += ` If you need assistance,${formatHelplines()}`;
+    }
+    return response;
   }
 
   const handleSendMessage = () => {

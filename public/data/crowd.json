@@ -2,6 +2,13 @@
   "lastUpdated": "2025-08-23T07:38:00.000Z",
   "bestBathingTime": "6:30 AM",
   "emergencyEtaMinutes": 9,
+  "helplines": {
+    "general": "+91-1122-334455",
+    "medical": "+91-9988-776655",
+    "police": "+91-100",
+    "fire": "+91-101"
+  },
+  "autoSuggestOn": ["High", "Critical"],
   "locations": [
     {
       "name": "Ramkund Ghat",
