@@ -3,7 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import heroImage from '@/assets/kumbh-mela-hero.jpg';
 
-const HeroSection = () => {
+type HeroSectionProps = {
+  onNavigate?: (tab: string) => void;
+};
+const HeroSection: React.FC<HeroSectionProps> = ({ onNavigate }) => {
+  const navigate = onNavigate ?? (() => {});
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -76,13 +80,13 @@ const HeroSection = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button variant="sacred" size="lg" className="text-lg px-8 py-4">
+          <Button variant="sacred" size="lg" className="text-lg px-8 py-4" onClick={() => navigate('heatmap')}>
             View Crowd Status
           </Button>
-          <Button variant="golden" size="lg" className="text-lg px-8 py-4">
+          <Button variant="golden" size="lg" className="text-lg px-8 py-4" onClick={() => navigate('assistant')}>
             Plan Your Journey
           </Button>
-          <Button variant="spiritual" size="lg" className="text-lg px-8 py-4">
+          <Button variant="spiritual" size="lg" className="text-lg px-8 py-4" onClick={() => navigate('emergency')}>
             Emergency Contact
           </Button>
         </div>

@@ -44,7 +44,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
-            <HeroSection />
+            <HeroSection onNavigate={setActiveTab} />
             <CrowdDashboard />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Simulation3D />
