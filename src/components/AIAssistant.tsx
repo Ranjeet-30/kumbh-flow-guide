@@ -110,7 +110,7 @@ const AIAssistant = () => {
   ];
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-[600px] max-h-[600px] flex flex-col overflow-hidden">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -134,9 +134,9 @@ const AIAssistant = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col">
+      <CardContent className="flex-1 flex flex-col overflow-hidden">
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+        <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
           {messages.map((message) => (
             <div
               key={message.id}
