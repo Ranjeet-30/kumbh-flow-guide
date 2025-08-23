@@ -38,6 +38,38 @@ const AIAssistant = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Data fetched from website (public/data/crowd.json)
+  type DensityLevel = 'Low' | 'Medium' | 'High' | 'Critical'
+  interface CrowdLocation {
+    name: string
+    density: DensityLevel
+    count: number
+    altRoute: string
+    congestionDropPct: number
+  }
+  interface SiteData {
+    lastUpdated: string
+    bestBathingTime: string
+    emergencyEtaMinutes: number
+    locations: CrowdLocation[]
+  }
+  const [siteData, setSiteData] = useState<SiteData | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch('/data/crowd.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load data');
+        const json = await res.json();
+        setSiteData(json);
+      } catch (err) {
+        setDataError('Live data unavailable. Using defaults.');
+      }
+    };
+    fetchData();
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -54,6 +86,42 @@ const AIAssistant = () => {
     "I've analyzed the crowd flow patterns. The shortest route to your destination will take approximately 25 minutes considering current conditions."
   ];
 
+  function buildDataDrivenResponse(query: string): string {
+    const q = query.toLowerCase();
+    if (!siteData) {
+      // Fallback if data not loaded
+      return predefinedResponses[Math.floor(Math.random() * predefinedResponses.length)];
+    }
+
+    // Helper: find a mentioned location, else pick the most congested
+    const mentioned = siteData.locations.find(loc => q.includes(loc.name.toLowerCase()));
+    const mostCrowded = [...siteData.locations].sort((a, b) => b.count - a.count)[0];
+
+    if (q.includes('emergency') || q.includes('help') || q.includes('ambulance')) {
+      return `Emergency services have been alerted. Move to the nearest safe zone. Estimated arrival is ${siteData.emergencyEtaMinutes} minutes. Last updated ${new Date(siteData.lastUpdated).toLocaleTimeString()}.`;
+    }
+
+    if (q.includes('best') && (q.includes('bath') || q.includes('bathing') || q.includes('snan'))) {
+      return `The best bathing time today is ${siteData.bestBathingTime} when crowd density is expected to be lowest. Shall I set a reminder?`;
+    }
+
+    if (q.includes('route') || q.includes('safest')) {
+      const loc = mentioned || mostCrowded;
+      return `Based on live data, take the alternative route via ${loc.altRoute} which currently has about ${loc.congestionDropPct}% less congestion than the main route to ${loc.name}.`;
+    }
+
+    if (q.includes('crowd') || q.includes('status') || q.includes('density')) {
+      const parts = siteData.locations
+        .slice(0, 3)
+        .map(l => `${l.name}: ${l.density} (${l.count.toLocaleString()})`) 
+        .join(' • ');
+      return `Current crowd status — ${parts}. Last updated ${new Date(siteData.lastUpdated).toLocaleTimeString()}.`;
+    }
+
+    const loc = mentioned || mostCrowded;
+    return `At ${loc.name}, crowd is ${loc.density} with ${loc.count.toLocaleString()} pilgrims. Consider ${loc.altRoute} for about ${loc.congestionDropPct}% less congestion.`;
+  }
+
   const handleSendMessage = () => {
     if (!input.trim()) return;
 
@@ -68,17 +136,17 @@ const AIAssistant = () => {
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response
+    // Simulate AI response (now data-driven when available)
     setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: predefinedResponses[Math.floor(Math.random() * predefinedResponses.length)],
+        content: buildDataDrivenResponse(userMessage.content),
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
       setIsTyping(false);
-    }, 2000);
+    }, 800);
   };
 
   const handleVoiceToggle = () => {
@@ -110,7 +178,7 @@ const AIAssistant = () => {
   ];
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-[70vh] md:h-[600px] flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -143,7 +211,7 @@ const AIAssistant = () => {
               className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
+                className={`max-w-[90%] sm:max-w-[80%] rounded-lg p-3 overflow-x-auto ${
                   message.type === 'user'
                     ? 'bg-kumbh-saffron text-white'
                     : 'bg-accent text-accent-foreground'
@@ -156,7 +224,7 @@ const AIAssistant = () => {
                     </div>
                   )}
                   <div className="flex-1">
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     <p className="text-xs opacity-70 mt-1">
                       {message.timestamp.toLocaleTimeString()}
                     </p>
@@ -209,8 +277,8 @@ const AIAssistant = () => {
         </div>
 
         {/* Input */}
-        <div className="flex items-center gap-2">
-          <div className="flex-1 relative">
+        <div className="flex items-center gap-2 flex-col sm:flex-row">
+          <div className="flex-1 relative w-full">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -229,7 +297,7 @@ const AIAssistant = () => {
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
           </div>
-          <Button onClick={handleSendMessage} disabled={!input.trim()}>
+          <Button onClick={handleSendMessage} disabled={!input.trim()} className="w-full sm:w-auto">
             <Send className="h-4 w-4" />
           </Button>
         </div>
@@ -239,6 +307,14 @@ const AIAssistant = () => {
             <Badge variant="secondary" className="bg-red-100 text-red-800">
               <div className="w-2 h-2 bg-red-500 rounded-full mr-1 animate-pulse"></div>
               Listening...
+            </Badge>
+          </div>
+        )}
+
+        {dataError && (
+          <div className="mt-2 text-center">
+            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+              {dataError}
             </Badge>
           </div>
         )}

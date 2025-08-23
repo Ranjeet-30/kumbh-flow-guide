@@ -1,0 +1,42 @@
+{
+  "lastUpdated": "2025-08-23T07:38:00.000Z",
+  "bestBathingTime": "6:30 AM",
+  "emergencyEtaMinutes": 9,
+  "locations": [
+    {
+      "name": "Ramkund Ghat",
+      "density": "High",
+      "count": 45000,
+      "altRoute": "Godavari Ghat",
+      "congestionDropPct": 40
+    },
+    {
+      "name": "Triveni Sangam",
+      "density": "Critical",
+      "count": 78000,
+      "altRoute": "Jhunsi Bridge Side",
+      "congestionDropPct": 35
+    },
+    {
+      "name": "Kalaram Temple",
+      "density": "High",
+      "count": 38000,
+      "altRoute": "Panchavati Bypass",
+      "congestionDropPct": 28
+    },
+    {
+      "name": "Godavari Ghat",
+      "density": "Medium",
+      "count": 31000,
+      "altRoute": "Takli Road",
+      "congestionDropPct": 22
+    },
+    {
+      "name": "Panchavati",
+      "density": "Low",
+      "count": 12000,
+      "altRoute": "Gangapur Road",
+      "congestionDropPct": 15
+    }
+  ]
+}
